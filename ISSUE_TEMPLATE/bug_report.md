@@ -28,7 +28,7 @@ labels: bug
 - Rust toolchain (if applicable):
 - Deployment topology (single-node, hub, distributed nodes, replicated):
 - Clock profile in use (e.g. `simulated`, `ntp`, `gnss_pps`, `ptp_hardware`):
-- Decoder adapter in use (e.g. `simulated`, real hardware family):
+- Detector adapter in use (e.g. `simulated`, real hardware family):
 - Anything else relevant:
 
 ## Event excerpts and logs
@@ -36,7 +36,7 @@ labels: bug
 <!--
 Paste the relevant logs and any event records involved. For event records,
 include the FULL object with all provenance blocks (timestamping, clock,
-observation, broker) — that's often where the bug becomes visible.
+observation, broker), that's often where the bug becomes visible.
 Redact secrets, credentials, and any private subject identifiers.
 -->
 

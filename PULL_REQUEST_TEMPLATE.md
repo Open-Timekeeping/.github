@@ -22,7 +22,7 @@
 ## Spec and AGENTS.md impact
 
 - [ ] No protocol or schema change
-- [ ] Protocol or schema change — `specs/` updated in this PR
+- [ ] Protocol or schema change, `specs/` updated in this PR
 - [ ] AGENTS.md updated for any new or changed convention
 
 ## For reviewers

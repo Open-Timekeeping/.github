@@ -14,7 +14,7 @@ We want Open Timekeeping to be a project where technical work gets done well and
 
 - Personal attacks, insults, demeaning language, or sustained hostility toward another contributor.
 - Harassment of any kind, including unwanted contact after being asked to stop.
-- Discriminatory remarks targeting people on the basis of who they are — race, ethnicity, nationality, sex, gender identity or expression, sexual orientation, disability, religion, age, or any similar characteristic.
+- Discriminatory remarks targeting people on the basis of who they are, race, ethnicity, nationality, sex, gender identity or expression, sexual orientation, disability, religion, age, or any similar characteristic.
 - Threats, doxxing, or anything that puts another contributor at risk.
 - Persistently derailing technical discussions to relitigate already-decided points.
 - Bringing unrelated political fights into the project.
@@ -36,7 +36,7 @@ If the concern is about the maintainer themselves, escalate to someone you trust
 The maintainer will:
 
 1. Acknowledge the report within a few days.
-2. Look into it — read the context, talk to people, form a view.
+2. Look into it, read the context, talk to people, form a view.
 3. Decide on an action, anywhere from "no action, this was a misread" through a private conversation, a warning, a temporary ban from project spaces, or a permanent ban.
 4. Tell you what was decided. The decision is the maintainer's. People are welcome to disagree publicly; the decision stands until reversed.
 
@@ -44,7 +44,7 @@ We are not going to run a tribunal. The point is to keep the project a good plac
 
 ## Good-faith protection
 
-Reporting a concern in good faith — even one that turns out to be a misread — will not be held against you. Knowingly fabricated reports are themselves a violation.
+Reporting a concern in good faith, even one that turns out to be a misread, will not be held against you. Knowingly fabricated reports are themselves a violation.
 
 ## Maintainer
 
