@@ -26,16 +26,17 @@ The conceptual model, terminology, contracts, and operating principles live in [
 The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Repos fall into four groups:
 
 ```
-server/
-  core/          event-model, protocol, timing-core
-  ports/         port-in-ingest, port-out-event-log
-  adapters/      adapter-ingest-tcp, adapter-event-log-segment
-  app/           timing-node (composition root)
+otk-core/        workspace: event-model, protocol, timing-core,
+                            port-in-ingest, port-out-event-log
 
-sdk/             otk-sdk (producer + consumer SDK; no server deps)
+adapter-ingest-tcp/         implements port-in-ingest over TCP
+adapter-event-log-segment/  implements port-out-event-log with segment files
 
-producers/       adapter-simulator (and future producers)
-consumers/       (future; depend on otk-sdk client feature only)
+timing-node/     reference server composition root (binary: otk-node)
+
+otk-sdk/         producer + consumer SDK; no server deps
+
+producer-simulated/   reference simulated producer (binary: otk-simulator)
 ```
 
 Dependency rules:
