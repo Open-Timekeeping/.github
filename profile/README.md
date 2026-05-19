@@ -23,25 +23,24 @@ The conceptual model, terminology, contracts, and operating principles live in [
 
 ## Architecture: ports and adapters
 
-The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Server-side repos fall into four hexagonal layers; the SDK, producers, and consumers are separate independent groups:
+The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Repos fall into four groups:
 
 ```
-otk-core/        workspace: event-model, protocol, timing-core,
-                            port-in-ingest, port-out-event-log
+server/
+  core/          event-model, protocol, timing-core
+  ports/         port-in-ingest, port-out-event-log
+  adapters/      adapter-ingest-tcp, adapter-event-log-segment
+  app/           timing-node (composition root)
 
-adapter-ingest-tcp/         implements port-in-ingest over TCP
-adapter-event-log-segment/  implements port-out-event-log with segment files
+sdk/             otk-sdk (producer + consumer SDK; no server deps)
 
-timing-node/     reference server composition root (binary: otk-node)
-
-otk-sdk/         producer + consumer SDK; no server port/adapter deps
-
-producer-simulated/   reference simulated producer (binary: otk-simulator)
+producers/       adapter-simulator (and future producers)
+consumers/       (future; depend on otk-sdk client feature only)
 ```
 
-Dependency rules (layer labels are conceptual; each entry is a separate repository or workspace member, not a directory inside a monorepo). These rules govern dependencies between OTK crates and repos; they do not restrict third-party Cargo dependencies:
+Dependency rules:
 
-| Layer | May depend on (OTK crates) |
+| Layer | May depend on |
 |---|---|
 | `server/core/*` | nothing (no OTK deps) |
 | `server/ports/*` | `server/core/*` only |
@@ -72,7 +71,7 @@ What makes the node the central one is that it owns the canonical event log, med
    simulators, replays)
        |                                       |
        |  OTK protocol over a transport        |  plugin-api calls
-       |  (TCP; serial/USB CDC future)         |
+       |  (TCP, serial, USB CDC, ...)          |
        v                                       v
   +-------------------------+        +-------------------------+
   |  adapter-ingest-tcp     |        |  Plugin host (future)   |
@@ -115,7 +114,7 @@ The node ingests four kinds of first-class events, all defined in [`event-model`
 - **Live subscribe** for apps and operator tools, streaming canonical events plus crossing results.
 - **Range reads and replay** for any consumer that wants history.
 - **Registry queries** for detector and timebase state.
-- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core).
+- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/timing-core).
 
 ### Honest provenance, immutable log, amendments
 
@@ -123,7 +122,7 @@ Every event carries the timestamping method, timebase reference, sync state at t
 
 ### Deployment shapes
 
-Six canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/spec/blob/main/topologies.md):
+Five canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/spec/blob/main/topologies.md):
 
 - **Native producer.** Firmware on a device speaks OTK directly over a supported transport. No edge adapter required.
 - **Edge adapter.** A standalone process on a Pi or mini-PC normalizes a raw device into canonical events and ships them to a node via `otk-sdk` (producer feature).
@@ -141,16 +140,13 @@ Six canonical deployment shapes are documented in [`spec/topologies.md`](https:/
 
 ## The SDK
 
-[`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no dependency on server port contracts, adapters, or the timing-node app; its only `otk-core` dependencies are the shared types `event-model` (always) and `protocol` (producer feature only).
-
-These examples use unpinned `git` references, which is intentional during early development. Add `rev = "<commit>"` once the project stabilizes.
+[`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no server-side dependencies.
 
 ```toml
-# Consumer app (default features include client for HTTP/SSE reads):
+# Consumer app (default: client feature for HTTP/SSE reads):
 otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk" }
 
-# Producer (TCP) — default-features = false excludes the client feature,
-# which producer-only processes don't need:
+# Producer (TCP):
 otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk", default-features = false, features = ["producer"] }
 ```
 
