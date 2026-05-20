@@ -16,7 +16,7 @@ Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entr
 
 | Layer | May depend on |
 |---|---|
-| `server/core/*` (event-model) | nothing outside the workspace |
+| `server/core/*` (event-model) | nothing |
 | `server/ports/*` (protocol, timing-core, port-in-ingest, port-out-event-log) | `server/core/*` within the workspace |
 | `server/adapters/*` (adapter-ingest-tcp, adapter-event-log-segment) | `server/ports/*`, `server/core/*` |
 | `server/app/*` (timing-node) | everything in `server/` |
@@ -155,7 +155,7 @@ These repos have been superseded and will be archived after `otk-core` is merged
 | `wire-protocol` | `otk-core` workspace member (`protocol`) |
 | `transport-api` | transport concern absorbed into `adapter-ingest-tcp`; port contract replaced by `port-in-ingest` (in `otk-core`) |
 | `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
-| `frame-codec` | absorbed into `adapter-ingest-tcp` (server) and `otk-sdk` producer feature (client) |
+| `frame-codec` | absorbed into `adapter-ingest-tcp` (server-side framing) and `otk-sdk` producer feature (producer-side framing) |
 | `detector-adapter-api` | absorbed into `otk-sdk` producer feature |
 | `detector-adapter-common` | absorbed into `otk-sdk` producer feature |
 | `otk-ingest-client` | replaced by `otk-sdk` producer feature |
