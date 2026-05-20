@@ -53,7 +53,8 @@ A single Cargo workspace containing all shared core crates. OTK internal deps us
 | [port-in-ingest](https://github.com/Open-Timekeeping/otk-core/tree/main/port-in-ingest) | Inbound port: EventIngestPort, IngestSession. Depends on event-model. |
 | [port-out-event-log](https://github.com/Open-Timekeeping/otk-core/tree/main/port-out-event-log) | Outbound port: EventLog, LogSubscription, Offset. Depends on event-model. |
 
-Downstream crates reference members via (intentionally unpinned during early development; add `rev = "<commit>"` once the workspace stabilizes):
+Downstream crates reference members via git. These references are intentionally unpinned during early development; add `rev = "<commit>"` once the workspace stabilizes.
+
 ```toml
 event-model = { git = "https://github.com/Open-Timekeeping/otk-core", package = "event-model" }
 ```
