@@ -146,24 +146,6 @@ Consumer applications depend on `otk-sdk` (client feature) only.
 
 ---
 
-## Archived repos
-
-These repos have been superseded. Their code lives in `otk-core` or in the repos listed above.
-
-| Repo | Superseded by |
-|---|---|
-| `event-model` | `otk-core` workspace member |
-| `timing-core` | `otk-core` workspace member |
-| `wire-protocol` | `otk-core` workspace member (`protocol`) |
-| `transport-api` | transport concern absorbed into `adapter-ingest-tcp`; port contract replaced by `port-in-ingest` (in `otk-core`) |
-| `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
-| `frame-codec` | `otk-core` workspace member (serial framing absorbed; stream framing inlined in adapter-ingest-tcp and otk-sdk producer) |
-| `detector-adapter-api` | absorbed into `otk-sdk` producer feature |
-| `detector-adapter-common` | absorbed into `otk-sdk` producer feature |
-| `otk-ingest-client` | replaced by `otk-sdk` producer feature |
-
----
-
 ## Dependency principles
 
 - **Ports-and-adapters (hexagonal) architecture.** Core types flow inward; adapters implement outward contracts. The timing node (app) is the composition root.
