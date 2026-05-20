@@ -72,7 +72,7 @@ What makes the node the central one is that it owns the canonical event log, med
    simulators, replays)
        |                                       |
        |  OTK protocol over a transport        |  plugin-api calls
-       |  (TCP, serial, USB CDC, ...)          |
+       |  (TCP; serial/USB CDC future)         |
        v                                       v
   +-------------------------+        +-------------------------+
   |  adapter-ingest-tcp     |        |  Plugin host (future)   |

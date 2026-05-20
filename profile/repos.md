@@ -36,7 +36,7 @@ Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entr
 
 ## otk-core workspace
 
-A single Cargo workspace containing all shared core crates. Internal deps use path refs; no member references anything outside the workspace.
+A single Cargo workspace containing all shared core crates. OTK internal deps use path refs; workspace members do not depend on other OTK repos outside the workspace. Third-party crate dependencies are unrestricted.
 
 **Core** (`server/core/*`, no OTK deps):
 
