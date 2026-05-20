@@ -144,10 +144,11 @@ Six canonical deployment shapes are documented in [`spec/topologies.md`](https:/
 [`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no server-side dependencies.
 
 ```toml
-# Consumer app (default: client feature for HTTP/SSE reads):
+# Consumer app (default features include client for HTTP/SSE reads):
 otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk" }
 
-# Producer (TCP):
+# Producer (TCP) — default-features = false excludes the client feature,
+# which producer-only processes don't need:
 otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk", default-features = false, features = ["producer"] }
 ```
 
