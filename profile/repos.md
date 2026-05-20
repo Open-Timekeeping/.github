@@ -53,7 +53,7 @@ A single Cargo workspace containing all shared core crates. OTK internal deps us
 | [port-in-ingest](https://github.com/Open-Timekeeping/otk-core/tree/main/port-in-ingest) | Inbound port: EventIngestPort, IngestSession. Depends on event-model. |
 | [port-out-event-log](https://github.com/Open-Timekeeping/otk-core/tree/main/port-out-event-log) | Outbound port: EventLog, LogSubscription, Offset. Depends on event-model. |
 
-Downstream crates reference members via:
+Downstream crates reference members via (intentionally unpinned during early development; add `rev = "<commit>"` once the workspace stabilizes):
 ```toml
 event-model = { git = "https://github.com/Open-Timekeeping/otk-core", package = "event-model" }
 ```
@@ -85,7 +85,7 @@ Future: `adapter-ingest-serial`, `adapter-ingest-usb-cdc`, `adapter-ingest-unix-
 
 | Repo | Role |
 |---|---|
-| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `features=["producer"]` for TCP producers. Re-exports event-model. No dependency on server port contracts, adapters, or the timing-node app. |
+| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `default-features = false, features = ["producer"]` for producer-only use. Re-exports event-model. No dependency on server port contracts, adapters, or the timing-node app. |
 
 ---
 
