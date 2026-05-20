@@ -39,9 +39,9 @@ otk-sdk/         producer + consumer SDK; no server deps
 producer-simulated/   reference simulated producer (binary: otk-simulator)
 ```
 
-Dependency rules (layer labels are conceptual; each repo is a separate repository, not a subdirectory of a monorepo):
+Dependency rules (layer labels are conceptual; each repo is a separate repository, not a subdirectory of a monorepo). These rules govern dependencies between OTK crates and repos; they do not restrict third-party Cargo dependencies:
 
-| Layer | May depend on |
+| Layer | May depend on (OTK crates) |
 |---|---|
 | `server/core/*` | nothing (no OTK deps) |
 | `server/ports/*` | `server/core/*` only |
