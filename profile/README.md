@@ -141,7 +141,7 @@ Six canonical deployment shapes are documented in [`spec/topologies.md`](https:/
 
 ## The SDK
 
-[`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no server-side dependencies.
+[`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no dependency on server port contracts, adapters, or the timing-node app; its only `otk-core` dependencies are the shared types `event-model` (always) and `protocol` (producer feature only).
 
 ```toml
 # Consumer app (default features include client for HTTP/SSE reads):
