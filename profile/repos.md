@@ -14,13 +14,13 @@ The architecture is [ports-and-adapters (hexagonal)](https://github.com/Open-Tim
 
 | Layer | May depend on |
 |---|---|
-| `otk-core` members | path deps within the workspace only |
-| `adapter-ingest-tcp` | `otk-core` (port-in-ingest, protocol, event-model) |
-| `adapter-event-log-segment` | `otk-core` (port-out-event-log, event-model) |
-| `otk-sdk` | `otk-core` (event-model, protocol optional) |
-| `timing-node` | `otk-core` + adapters |
-| `producer-simulated` | `otk-sdk` only |
-| `consumers/*` | `otk-sdk` only |
+| `server/core/*` (event-model) | nothing outside the workspace |
+| `server/ports/*` (protocol, timing-core, port-in-ingest, port-out-event-log) | `server/core/*` within the workspace |
+| `server/adapters/*` (adapter-ingest-tcp, adapter-event-log-segment) | `server/ports/*`, `server/core/*` |
+| `server/app/*` (timing-node) | everything in `server/` |
+| `sdk/otk-sdk` | `event-model`, `protocol` (optional) only |
+| `producers/*` | `sdk/otk-sdk` only |
+| `consumers/*` | `sdk/otk-sdk` only |
 
 ---
 
@@ -36,9 +36,16 @@ The architecture is [ports-and-adapters (hexagonal)](https://github.com/Open-Tim
 
 A single Cargo workspace containing all shared core crates. Internal deps use path refs; no member references anything outside the workspace.
 
+**Core** (`server/core/*`, no OTK deps):
+
 | Crate | Role |
 |---|---|
 | [event-model](https://github.com/Open-Timekeeping/otk-core/tree/main/event-model) | Canonical event types and identifiers. No OTK deps. |
+
+**Ports and shared types** (`server/ports/*`, depend on event-model):
+
+| Crate | Role |
+|---|---|
 | [protocol](https://github.com/Open-Timekeeping/otk-core/tree/main/protocol) | Wire DTOs: OtkEnvelope, handshake messages, MessageType. Depends on event-model. |
 | [timing-core](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core) | Detection-to-crossing engine. Depends on event-model. |
 | [port-in-ingest](https://github.com/Open-Timekeeping/otk-core/tree/main/port-in-ingest) | Inbound port: EventIngestPort, IngestSession. Depends on event-model. |
@@ -143,9 +150,9 @@ These repos have been superseded and will be archived after `otk-core` is merged
 |---|---|
 | `event-model` | `otk-core` workspace member |
 | `timing-core` | `otk-core` workspace member |
-| `protocol` (was `wire-protocol`) | `otk-core` workspace member |
-| `port-in-ingest` (was `transport-api`) | `otk-core` workspace member |
-| `port-out-event-log` (was `storage-api`) | `otk-core` workspace member |
+| `wire-protocol` | `otk-core` workspace member (`protocol`) |
+| `transport-api` | `otk-core` workspace member (`port-in-ingest`) |
+| `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
 | `frame-codec` | absorbed into `adapter-ingest-tcp` (server) and `otk-sdk` producer feature (client) |
 | `detector-adapter-api` | absorbed into `otk-sdk` producer feature |
 | `detector-adapter-common` | absorbed into `otk-sdk` producer feature |

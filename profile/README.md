@@ -123,7 +123,7 @@ Every event carries the timestamping method, timebase reference, sync state at t
 
 ### Deployment shapes
 
-Five canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/spec/blob/main/topologies.md):
+Six canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/spec/blob/main/topologies.md):
 
 - **Native producer.** Firmware on a device speaks OTK directly over a supported transport. No edge adapter required.
 - **Edge adapter.** A standalone process on a Pi or mini-PC normalizes a raw device into canonical events and ships them to a node via `otk-sdk` (producer feature).
