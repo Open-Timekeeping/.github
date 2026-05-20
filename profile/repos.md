@@ -6,6 +6,24 @@ The conceptual model lives in [`spec`](https://github.com/Open-Timekeeping/spec)
 
 The org has no `open-timekeeping-` or `otk-` repo-name prefix; the org namespace already provides that. Crate names, binaries, and CLI commands may use `otk-` (the runtime binary is `otk-node`).
 
+The architecture is [ports-and-adapters (hexagonal)](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md).
+
+---
+
+## Dependency rules
+
+Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entry is a separate repository or workspace member, not a directory inside a monorepo. These rules govern dependencies between OTK crates and repos; they do not restrict third-party Cargo dependencies.
+
+| Layer | May depend on (OTK crates) |
+|---|---|
+| `server/core/*` (event-model) | nothing |
+| `server/ports/*` (protocol, timing-core, port-in-ingest, port-out-event-log) | `server/core/*` only |
+| `server/adapters/*` (adapter-ingest-tcp, adapter-event-log-segment) | `server/ports/*`, `server/core/*` |
+| `server/app/*` (timing-node) | everything in `server/` |
+| `sdk/otk-sdk` | `event-model`, `protocol` (optional) only |
+| `producers/*` | `sdk/otk-sdk` only |
+| `consumers/*` | `sdk/otk-sdk` only |
+
 ---
 
 ## Standard and shared contracts
@@ -14,72 +32,79 @@ The org has no `open-timekeeping-` or `otk-` repo-name prefix; the org namespace
 |---|---|
 | [spec](https://github.com/Open-Timekeeping/spec) | The Open Timekeeping standard and conceptual model. Terminology, architecture, topologies, compatibility, open questions. |
 
-## OTK Protocol stack
+---
 
-The OTK Protocol is the transport-independent wire protocol used by Open Timekeeping components to exchange canonical timing messages. It is split into four layers, each in its own repo (or set of repos).
+## otk-core workspace
 
-| Layer | Repo | Role |
-|---|---|---|
-| Event Model | [event-model](https://github.com/Open-Timekeeping/event-model) | Canonical event types and identifiers, transport-independent. |
-| Wire Protocol | [wire-protocol](https://github.com/Open-Timekeeping/wire-protocol) | OTK message envelope: versioning, message types, source identity, sequence numbers, acks, errors, compatibility rules. |
-| Frame Codec | [frame-codec](https://github.com/Open-Timekeeping/frame-codec) | Encode/decode of OTK messages into byte frames (stream-oriented and resynchronizable). |
-| Frame Codec (firmware) | [embedded-wire](https://github.com/Open-Timekeeping/embedded-wire) | `no_std`-friendly OTK encoder/decoder for firmware. |
-| Transport Binding (contract) | [transport-api](https://github.com/Open-Timekeeping/transport-api) | Common listener/client abstraction across all transport bindings. |
-| Transport Binding (TCP) | [transport-tcp](https://github.com/Open-Timekeeping/transport-tcp) | OTK frames over persistent TCP streams. Default for IP-capable producers. |
-| Transport Binding (serial) | [transport-serial](https://github.com/Open-Timekeeping/transport-serial) | OTK frames over UART / RS-232 byte streams. |
-| Transport Binding (USB CDC) | [transport-usb-cdc](https://github.com/Open-Timekeeping/transport-usb-cdc) | OTK frames over USB CDC serial devices. |
-| Transport Binding (Unix socket) | [transport-unix-socket](https://github.com/Open-Timekeeping/transport-unix-socket) | OTK frames over Unix domain sockets for same-host adapters. |
+A single Cargo workspace containing all shared core crates. OTK internal deps use path refs; workspace members do not depend on other OTK repos outside the workspace. Third-party crate dependencies are unrestricted.
 
-## Detector contract and implementations
+**Core** (`server/core/*`, no OTK deps):
+
+| Crate | Role |
+|---|---|
+| [event-model](https://github.com/Open-Timekeeping/otk-core/tree/main/event-model) | Canonical event types and identifiers. No OTK deps. |
+
+**Ports and shared types** (`server/ports/*`, depend on event-model):
+
+| Crate | Role |
+|---|---|
+| [protocol](https://github.com/Open-Timekeeping/otk-core/tree/main/protocol) | Wire DTOs: OtkEnvelope, handshake messages, MessageType. Depends on event-model. |
+| [timing-core](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core) | Detection-to-crossing engine. Depends on event-model. |
+| [port-in-ingest](https://github.com/Open-Timekeeping/otk-core/tree/main/port-in-ingest) | Inbound port: EventIngestPort, IngestSession. Depends on event-model. |
+| [port-out-event-log](https://github.com/Open-Timekeeping/otk-core/tree/main/port-out-event-log) | Outbound port: EventLog, LogSubscription, Offset. Depends on event-model. |
+
+Downstream crates reference members via git. These references are intentionally unpinned during early development; add `rev = "<commit>"` once the workspace stabilizes.
+
+```toml
+event-model = { git = "https://github.com/Open-Timekeeping/otk-core", package = "event-model" }
+```
+
+---
+
+## server adapters
+
+Each adapter implements one port contract over a specific technology. One repo per adapter.
 
 | Repo | Role |
 |---|---|
-| [detector-adapter-api](https://github.com/Open-Timekeeping/detector-adapter-api) | The universal detector boundary. Every detector event source implements this. |
-| [detector-adapter-common](https://github.com/Open-Timekeeping/detector-adapter-common) | Shared helpers for detector adapter authors. |
-| [adapter-csv-replay](https://github.com/Open-Timekeeping/adapter-csv-replay) | Detector adapter for replaying detections from CSV / structured files. |
-| [adapter-manual](https://github.com/Open-Timekeeping/adapter-manual) | Detector adapter for manual timing input (button / keyboard / tablet). |
-| [adapter-simulator](https://github.com/Open-Timekeeping/adapter-simulator) | Detector adapter wrapping `detector-simulator` for runtime use. |
-| [detector-simulator](https://github.com/Open-Timekeeping/detector-simulator) | The simulation engine: realistic detection streams, fault injection, fixtures. |
+| [adapter-ingest-tcp](https://github.com/Open-Timekeeping/adapter-ingest-tcp) | Implements `port-in-ingest` over TCP. Encapsulates framing and OTK handshake. |
+| [adapter-event-log-segment](https://github.com/Open-Timekeeping/adapter-event-log-segment) | Implements `port-out-event-log` using append-only segment files on disk. |
 
-## Timebase contract and implementations
+Future: `adapter-ingest-serial`, `adapter-ingest-usb-cdc`, `adapter-ingest-unix-socket`.
 
-| Repo | Role |
-|---|---|
-| [timebase-api](https://github.com/Open-Timekeeping/timebase-api) | First-class clock / timebase contract. |
-| [timebase-common](https://github.com/Open-Timekeeping/timebase-common) | Shared helpers for timebase authors and consumers. |
-| [timebase-gnss](https://github.com/Open-Timekeeping/timebase-gnss) | GNSS / GPS / PPS timebase. |
-| [timebase-ptp](https://github.com/Open-Timekeeping/timebase-ptp) | PTP timebase (software, hardware-PHC, White-Rabbit-class). |
-| [timebase-ntp](https://github.com/Open-Timekeeping/timebase-ntp) | NTP timebase. |
-| [timebase-local](https://github.com/Open-Timekeeping/timebase-local) | Local-clock / monotonic timebase, honestly degraded. |
+---
 
-## Ingest client and plugin transport
+## server app
 
 | Repo | Role |
 |---|---|
-| [otk-ingest-client](https://github.com/Open-Timekeeping/otk-ingest-client) | Convenience client library for external producers that publish OTK frames into a runtime node. Not a required architectural component. |
-| [plugin-api](https://github.com/Open-Timekeeping/plugin-api) | Contract for in-process modules loaded by `timing-node`. |
+| [timing-node](https://github.com/Open-Timekeeping/timing-node) | Reference Timing Runtime Node. Binary: `otk-node`. Wires inbound adapters, storage, and timing-core together. |
 
-## Runtime
+---
 
-| Repo | Role |
-|---|---|
-| [timing-core](https://github.com/Open-Timekeeping/timing-core) | Timing-domain engine library, detections to crossings to laps to results. |
-| [timing-node](https://github.com/Open-Timekeeping/timing-node) | The deployable Timing Runtime Node. Binary: `otk-node`. |
-
-## Storage
+## SDK
 
 | Repo | Role |
 |---|---|
-| [storage-api](https://github.com/Open-Timekeeping/storage-api) | Persistence trait. Storage is pluggable on principle. |
-| [storage-segment-log](https://github.com/Open-Timekeeping/storage-segment-log) | Custom segment-file event log. The v0 backend. |
+| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `default-features = false, features = ["producer"]` for producer-only use. Re-exports event-model. No dependency on server port contracts, adapters, or the timing-node app. |
 
-## APIs and apps
+---
+
+## producers
 
 | Repo | Role |
 |---|---|
-| [api-model](https://github.com/Open-Timekeeping/api-model) | DTOs / schemas for the runtime node's outward APIs. |
-| [app-live-timing](https://github.com/Open-Timekeeping/app-live-timing) | Operator / spectator live timing app. |
-| [app-diagnostics](https://github.com/Open-Timekeeping/app-diagnostics) | Operator diagnostics app (detector health, timebase status, latency). |
+| [producer-simulated](https://github.com/Open-Timekeeping/producer-simulated) | Reference simulated producer. Uses `otk-sdk` (producer feature) only. Binary: `otk-simulator`. |
+
+Future: `producer-csv-replay`, `producer-manual`.
+
+---
+
+## consumers (future)
+
+Consumer applications depend on `otk-sdk` (client feature) only.
+
+---
 
 ## Embedded toolkit
 
@@ -90,6 +115,8 @@ The OTK Protocol is the transport-independent wire protocol used by Open Timekee
 | [target-rp2040](https://github.com/Open-Timekeeping/target-rp2040) | RP2040 / Raspberry Pi Pico port. |
 | [target-stm32](https://github.com/Open-Timekeeping/target-stm32) | STM32 port. |
 
+---
+
 ## Reference hardware and firmware
 
 | Repo | Role |
@@ -97,25 +124,54 @@ The OTK Protocol is the transport-independent wire protocol used by Open Timekee
 | [reference-hardware](https://github.com/Open-Timekeeping/reference-hardware) | Reference detector hardware design (schematics, PCB, BOM). |
 | [reference-detector-firmware](https://github.com/Open-Timekeeping/reference-detector-firmware) | Complete firmware combining `embedded-*` and a `target-*` port. |
 
+---
+
+## APIs and apps (future)
+
+| Repo | Role |
+|---|---|
+| [app-live-timing](https://github.com/Open-Timekeeping/app-live-timing) | Operator / spectator live timing app. |
+| [app-diagnostics](https://github.com/Open-Timekeeping/app-diagnostics) | Operator diagnostics app (detector health, timebase status, latency). |
+
+---
+
 ## Conformance and docs
 
 | Repo | Role |
 |---|---|
-| [conformance](https://github.com/Open-Timekeeping/conformance) | Compatibility suite for adapters, timebases, producers, plugins, storage, runtime. |
+| [conformance](https://github.com/Open-Timekeeping/conformance) | Compatibility suite for adapters, producers, consumers, storage, runtime. |
 | [conformance-fixtures](https://github.com/Open-Timekeeping/conformance-fixtures) | Shared test fixtures (sample streams, edge cases, expected outputs). |
 | [docs-site](https://github.com/Open-Timekeeping/docs-site) | Optional unified documentation site. `spec` remains the canonical standards source. |
 
 ---
 
+## Archived repos
+
+These repos have been superseded and will be archived after `otk-core` is merged:
+
+| Repo | Superseded by |
+|---|---|
+| `event-model` | `otk-core` workspace member |
+| `timing-core` | `otk-core` workspace member |
+| `wire-protocol` | `otk-core` workspace member (`protocol`) |
+| `transport-api` | transport concern absorbed into `adapter-ingest-tcp`; port contract replaced by `port-in-ingest` (in `otk-core`) |
+| `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
+| `frame-codec` | absorbed into `adapter-ingest-tcp` (server-side framing) and `otk-sdk` producer feature (producer-side framing) |
+| `detector-adapter-api` | absorbed into `otk-sdk` producer feature |
+| `detector-adapter-common` | absorbed into `otk-sdk` producer feature |
+| `otk-ingest-client` | replaced by `otk-sdk` producer feature |
+
+---
+
 ## Dependency principles
 
-- **Granular repos by design.** Each contract, implementation, and shared library is its own repo. No mega-monorepo.
-- **Local Rust development uses sibling-relative path dependencies.** E.g. `event-model = { path = "../event-model" }`. Crates remain independently publishable when work matures.
-- **Shared code belongs in shared library repos.** If two adapters need the same helper, it goes in `detector-adapter-common`. If two timebases need the same helper, it goes in `timebase-common`. Never copy-paste.
+- **Ports-and-adapters (hexagonal) architecture.** Core types flow inward; adapters implement outward contracts. The timing node (app) is the composition root.
+- **Dependency rules are enforced by crate boundaries.** `otk-sdk` never imports server port contracts (`port-in-ingest`, `port-out-event-log`) or server adapters; it depends only on the shared types `event-model` and optionally `protocol`.
+- **Producers and consumers have no server implementation dependencies.** They depend only on `otk-sdk` (which in turn depends only on the shared `event-model` and `protocol` types).
+- **Transport is runtime configuration.** `Producer::connect(Transport::Tcp(addr))`.
 
 ## What's intentionally not here
 
-- **No vendor-specific proprietary adapters** (MYLAPS, RaceResult, etc.) at this stage. They may be considered later, or never, depending on protocol, licensing, and access.
+- **No vendor-specific proprietary adapters** at this stage.
 - **No race-control app** at this stage.
-- **No native-embedded-bypass path.** Embedded firmware is one packaging of the detector adapter contract, not an alternative to it.
-- **No vague "fabric repo."** *Timing Fabric* is a deployment concept; it is not a repo or a binary.
+- **No vague "fabric repo."** Timing Fabric is a deployment concept; it is not a repo or a binary.
