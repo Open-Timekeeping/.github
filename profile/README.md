@@ -103,7 +103,7 @@ What makes the node the central one is that it owns the canonical event log, med
      laps, results)       reads log)          health, ...)
 ```
 
-The node ingests four kinds of first-class events, all defined in [`event-model`](https://github.com/Open-Timekeeping/event-model):
+The node ingests four kinds of first-class events, all defined in [`event-model`](https://github.com/Open-Timekeeping/otk-core/tree/main/event-model):
 
 - **Detection events** from any detector adapter.
 - **Detector health events** that say whether a detector is producing trustworthy data.
@@ -115,7 +115,7 @@ The node ingests four kinds of first-class events, all defined in [`event-model`
 - **Live subscribe** for apps and operator tools, streaming canonical events plus crossing results.
 - **Range reads and replay** for any consumer that wants history.
 - **Registry queries** for detector and timebase state.
-- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/timing-core).
+- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core).
 
 ### Honest provenance, immutable log, amendments
 

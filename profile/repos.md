@@ -83,7 +83,7 @@ Future: `adapter-ingest-serial`, `adapter-ingest-usb-cdc`, `adapter-ingest-unix-
 
 | Repo | Role |
 |---|---|
-| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. `default=["client"]` for HTTP/SSE reads; `features=["producer"]` for TCP producers. Re-exports event-model. No server deps. |
+| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `features=["producer"]` for TCP producers. Re-exports event-model. No server deps. |
 
 ---
 
