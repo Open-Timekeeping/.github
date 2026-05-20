@@ -12,12 +12,12 @@ The architecture is [ports-and-adapters (hexagonal)](https://github.com/Open-Tim
 
 ## Dependency rules
 
-Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entry is a separate repository or workspace member, not a directory inside a monorepo.
+Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entry is a separate repository or workspace member, not a directory inside a monorepo. These rules govern dependencies between OTK crates and repos; they do not restrict third-party Cargo dependencies.
 
-| Layer | May depend on |
+| Layer | May depend on (OTK crates) |
 |---|---|
 | `server/core/*` (event-model) | nothing |
-| `server/ports/*` (protocol, timing-core, port-in-ingest, port-out-event-log) | `server/core/*` within the workspace |
+| `server/ports/*` (protocol, timing-core, port-in-ingest, port-out-event-log) | `server/core/*` only |
 | `server/adapters/*` (adapter-ingest-tcp, adapter-event-log-segment) | `server/ports/*`, `server/core/*` |
 | `server/app/*` (timing-node) | everything in `server/` |
 | `sdk/otk-sdk` | `event-model`, `protocol` (optional) only |
