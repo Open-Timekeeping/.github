@@ -85,7 +85,7 @@ Future: `adapter-ingest-serial`, `adapter-ingest-usb-cdc`, `adapter-ingest-unix-
 
 | Repo | Role |
 |---|---|
-| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `features=["producer"]` for TCP producers. Re-exports event-model. No server deps. |
+| [otk-sdk](https://github.com/Open-Timekeeping/otk-sdk) | Single SDK crate for producers and consumers. Default features include `client` for HTTP/SSE reads; add `features=["producer"]` for TCP producers. Re-exports event-model. No dependency on server port contracts, adapters, or the timing-node app. |
 
 ---
 
@@ -165,7 +165,7 @@ These repos have been superseded and will be archived after `otk-core` is merged
 ## Dependency principles
 
 - **Ports-and-adapters (hexagonal) architecture.** Core types flow inward; adapters implement outward contracts. The timing node (app) is the composition root.
-- **Dependency rules are enforced by crate boundaries.** `timing-node` never imports `protocol` types directly. `otk-sdk` never imports server port contracts (`port-in-ingest`, `port-out-event-log`) or server adapters; it depends only on the shared types `event-model` and optionally `protocol`.
+- **Dependency rules are enforced by crate boundaries.** `otk-sdk` never imports server port contracts (`port-in-ingest`, `port-out-event-log`) or server adapters; it depends only on the shared types `event-model` and optionally `protocol`.
 - **Producers and consumers have no server implementation dependencies.** They depend only on `otk-sdk` (which in turn depends only on the shared `event-model` and `protocol` types).
 - **Transport is runtime configuration.** `Producer::connect(Transport::Tcp(addr))`.
 

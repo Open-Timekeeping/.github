@@ -34,7 +34,7 @@ adapter-event-log-segment/  implements port-out-event-log with segment files
 
 timing-node/     reference server composition root (binary: otk-node)
 
-otk-sdk/         producer + consumer SDK; no server deps
+otk-sdk/         producer + consumer SDK; no server port/adapter deps
 
 producer-simulated/   reference simulated producer (binary: otk-simulator)
 ```
