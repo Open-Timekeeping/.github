@@ -12,6 +12,8 @@ The architecture is [ports-and-adapters (hexagonal)](https://github.com/Open-Tim
 
 ## Dependency rules
 
+Layer labels (`server/core/*`, `server/ports/*`, etc.) are conceptual. Each entry is a separate repository or workspace member, not a directory inside a monorepo.
+
 | Layer | May depend on |
 |---|---|
 | `server/core/*` (event-model) | nothing outside the workspace |
@@ -151,7 +153,7 @@ These repos have been superseded and will be archived after `otk-core` is merged
 | `event-model` | `otk-core` workspace member |
 | `timing-core` | `otk-core` workspace member |
 | `wire-protocol` | `otk-core` workspace member (`protocol`) |
-| `transport-api` | `otk-core` workspace member (`port-in-ingest`) |
+| `transport-api` | transport concern absorbed into `adapter-ingest-tcp`; port contract replaced by `port-in-ingest` (in `otk-core`) |
 | `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
 | `frame-codec` | absorbed into `adapter-ingest-tcp` (server) and `otk-sdk` producer feature (client) |
 | `detector-adapter-api` | absorbed into `otk-sdk` producer feature |

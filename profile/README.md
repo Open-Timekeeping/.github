@@ -23,7 +23,7 @@ The conceptual model, terminology, contracts, and operating principles live in [
 
 ## Architecture: ports and adapters
 
-The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Repos fall into four groups:
+The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Server-side repos fall into four hexagonal layers; the SDK, producers, and consumers are separate independent groups:
 
 ```
 otk-core/        workspace: event-model, protocol, timing-core,
@@ -39,7 +39,7 @@ otk-sdk/         producer + consumer SDK; no server deps
 producer-simulated/   reference simulated producer (binary: otk-simulator)
 ```
 
-Dependency rules:
+Dependency rules (layer labels are conceptual; each repo is a separate repository, not a subdirectory of a monorepo):
 
 | Layer | May depend on |
 |---|---|
