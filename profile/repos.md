@@ -52,6 +52,7 @@ A single Cargo workspace containing all shared core crates. OTK internal deps us
 | [timing-core](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core) | Detection-to-crossing engine. Depends on event-model. |
 | [port-in-ingest](https://github.com/Open-Timekeeping/otk-core/tree/main/port-in-ingest) | Inbound port: EventIngestPort, IngestSession. Depends on event-model. |
 | [port-out-event-log](https://github.com/Open-Timekeeping/otk-core/tree/main/port-out-event-log) | Outbound port: EventLog, LogSubscription, Offset. Depends on event-model. |
+| [frame-codec](https://github.com/Open-Timekeeping/otk-core/tree/main/frame-codec) | Frame encoding/decoding for reliable (stream) and unreliable (serial/COBS+CRC-16) transports. `no_std`. Depends on protocol. |
 
 Downstream crates reference members via git. These references are intentionally unpinned during early development; add `rev = "<commit>"` once the workspace stabilizes.
 
@@ -147,7 +148,7 @@ Consumer applications depend on `otk-sdk` (client feature) only.
 
 ## Archived repos
 
-These repos have been superseded and will be archived after `otk-core` is merged:
+These repos have been superseded. Their code lives in `otk-core` or in the repos listed above.
 
 | Repo | Superseded by |
 |---|---|
@@ -156,7 +157,7 @@ These repos have been superseded and will be archived after `otk-core` is merged
 | `wire-protocol` | `otk-core` workspace member (`protocol`) |
 | `transport-api` | transport concern absorbed into `adapter-ingest-tcp`; port contract replaced by `port-in-ingest` (in `otk-core`) |
 | `storage-api` | `otk-core` workspace member (`port-out-event-log`) |
-| `frame-codec` | absorbed into `adapter-ingest-tcp` (server-side framing) and `otk-sdk` producer feature (producer-side framing) |
+| `frame-codec` | `otk-core` workspace member (serial framing absorbed; stream framing inlined in adapter-ingest-tcp and otk-sdk producer) |
 | `detector-adapter-api` | absorbed into `otk-sdk` producer feature |
 | `detector-adapter-common` | absorbed into `otk-sdk` producer feature |
 | `otk-ingest-client` | replaced by `otk-sdk` producer feature |
