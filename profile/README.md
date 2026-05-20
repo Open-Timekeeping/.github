@@ -143,6 +143,8 @@ Six canonical deployment shapes are documented in [`spec/topologies.md`](https:/
 
 [`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no dependency on server port contracts, adapters, or the timing-node app; its only `otk-core` dependencies are the shared types `event-model` (always) and `protocol` (producer feature only).
 
+These examples use unpinned `git` references, which is intentional during early development. Add `rev = "<commit>"` once the project stabilizes.
+
 ```toml
 # Consumer app (default features include client for HTTP/SSE reads):
 otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk" }
