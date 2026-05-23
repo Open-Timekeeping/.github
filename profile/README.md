@@ -17,47 +17,59 @@ Open Timekeeping is not just an integration framework. It is a full-stack timing
 
 The first motivating domain is motorsport. The same primitives serve athletics, cycling, rowing, karting, RC racing, point-to-point timing, industrial checkpoints, lab timing, and similar contexts.
 
-## The standard
+## Where the code lives
 
-The conceptual model, terminology, contracts, and operating principles live in [**spec**](https://github.com/Open-Timekeeping/spec). Read [`spec/architecture.md`](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md) first.
+Everything that ships at v0 lives in one repository: [**`open-timekeeping`**](https://github.com/Open-Timekeeping/open-timekeeping). It is a single Cargo workspace containing the conceptual spec, the OTK protocol stack crates, port traits, adapters, the SDK, the reference producer, the runtime node, and the conformance suite.
+
+For the conceptual model, terminology, contracts, and operating principles, start with [`spec/architecture.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/architecture.md). For workspace orientation (how to build, where each crate lives, development conventions) see the repo's [`AGENTS.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/AGENTS.md) and top-level [`README.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/README.md).
 
 ## Architecture: ports and adapters
 
-The server-side codebase follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md). Server-side repos fall into four hexagonal layers; the SDK, producers, and consumers are separate independent groups:
+The runtime follows the [ports-and-adapters (hexagonal) architecture](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/architecture.md). Inside the single Cargo workspace, crates fall into the following layers:
 
 ```
-otk-core/        workspace: event-model, protocol, timing-core,
-                            port-in-ingest, port-out-event-log
+spec/                       Conceptual standard (markdown, normative)
 
-adapter-ingest-tcp/         implements port-in-ingest over TCP
-adapter-event-log-segment/  implements port-out-event-log with segment files
+event-model/                Canonical event types and identifiers
+otk-protocol/               Wire protocol DTOs: envelope, handshake, messages
+frame-codec/                Frame encode/decode (length-prefix stream + COBS serial)
+ingest-protocol/            Transport-agnostic server-side handshake / dispatch
+port-in-ingest/             Inbound port trait: EventIngestPort, IngestSession
+port-out-event-log/         Outbound port trait: EventLog, LogSubscription
+otk-contracts/              Detector adapter and timebase trait contracts
+timing-core/                Detection-to-crossing engine (a library, not a server)
 
-timing-node/     reference server composition root (binary: otk-node)
+adapter-ingest-tcp/         TCP transport binding
+adapter-ingest-unix-socket/ Unix-socket transport binding (cfg(unix))
+adapter-event-log-segment/  Append-only segment-file storage backend
 
-otk-sdk/         producer + consumer SDK; no server port/adapter deps
+otk-sdk/                    Producer + consumer SDK
+producer-simulated/         Reference producer (binary: otk-simulator)
 
-producer-simulated/   reference simulated producer (binary: otk-simulator)
+timing-node/                Timing Runtime Node (binary: otk-node)
+
+conformance/                Test suite verifying implementations against the contracts
+conformance-fixtures/       Test data corpus
 ```
 
-Dependency rules (layer labels are conceptual; each entry is a separate repository or workspace member, not a directory inside a monorepo). These rules govern dependencies between OTK crates and repos; they do not restrict third-party Cargo dependencies:
+Dependency rules (governing OTK-internal deps; third-party Cargo deps are unrestricted):
 
 | Layer | May depend on (OTK crates) |
 |---|---|
-| `server/core/*` | nothing (no OTK deps) |
-| `server/ports/*` | `server/core/*` only |
-| `server/adapters/*` | `server/ports/*`, `server/core/*` |
-| `server/app/*` | everything in `server/` |
-| `sdk/otk-sdk` | `event-model`, `protocol` (optional) only |
-| `producers/*` | `sdk/otk-sdk` only |
-| `consumers/*` | `sdk/otk-sdk` only |
+| Protocol-layer crates (`event-model`, `otk-protocol`, `frame-codec`) | only each other, in stack order |
+| Port traits (`port-in-ingest`, `port-out-event-log`) | `event-model` only |
+| Contract crate (`otk-contracts`) | `event-model` only |
+| Adapter crates (`adapter-ingest-*`, `adapter-event-log-segment`) | the port trait they implement + protocol layer |
+| `otk-sdk` | `event-model`, `otk-protocol` (producer feature), `otk-contracts` (producer feature) |
+| `producer-simulated` | `otk-sdk` |
+| `timing-node` | everything above; it is the composition root |
+| `conformance` | contracts + protocol layer; never concrete adapters |
 
-The timing node is the composition root for the server. Producer and consumer apps are their own composition roots. None of the three depend on each other.
-
-See [repos.md](repos.md) for the full repo inventory and dependency map.
+`timing-node` is the composition root for the runtime. Producer and consumer apps are their own composition roots. None of the three depend on each other at the trait level; `timing-node` Cargo-depends on the concrete adapters it instantiates, the pipeline logic inside it does not.
 
 ## The runtime
 
-A **Timing Runtime Node** (binary `otk-node`, repo [`timing-node`](https://github.com/Open-Timekeeping/timing-node)) is the central server process in an Open Timekeeping deployment. A real venue runs several things at once: one or more `otk-node` instances, each hosting one or more ingest listeners; the operator and spectator app for session management, scoring, results, and leaderboards; the diagnostics app for detector health and event-flow inspection; and standalone producer processes (using [`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk)) on edge gateways or in firmware.
+A **Timing Runtime Node** (binary `otk-node`, crate [`timing-node`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/timing-node)) is the central server process in an Open Timekeeping deployment. A real venue runs several things at once: one or more `otk-node` instances, each hosting one or more ingest listeners; the operator and spectator app for session management, scoring, results, and leaderboards; the diagnostics app for detector health and event-flow inspection; and standalone producer processes (using [`otk-sdk`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/otk-sdk)) on edge gateways or in firmware.
 
 What makes the node the central one is that it owns the canonical event log, mediates between producers and consumers, holds the live registries, and is the addressable endpoint that apps and operator tools talk to.
 
@@ -72,10 +84,11 @@ What makes the node the central one is that it owns the canonical event log, med
    simulators, replays)
        |                                       |
        |  OTK protocol over a transport        |  plugin-api calls
-       |  (TCP; serial/USB CDC future)         |
+       |  (TCP, Unix socket; serial /          |
+       |   USB CDC planned)                    |
        v                                       v
   +-------------------------+        +-------------------------+
-  |  adapter-ingest-tcp     |        |  Plugin host (future)   |
+  |  adapter-ingest-*       |        |  Plugin host (future)   |
   |  (framing + handshake   |        |  - load / start / stop  |
   |   encapsulated here;    |        |  - lifecycle + reload   |
   |   typed OtkEvent out)   |        |                         |
@@ -85,6 +98,7 @@ What makes the node the central one is that it owns the canonical event log, med
                 v                              v
           +----------------------------------------+
           |   NodePipeline (port-in-ingest user)   |
+          |   - sequence-gate                      |
           |   - appends to event log               |
           |   - feeds timing-core                  |
           +------------------+---------------------+
@@ -103,7 +117,7 @@ What makes the node the central one is that it owns the canonical event log, med
      laps, results)       reads log)          health, ...)
 ```
 
-The node ingests four kinds of first-class events, all defined in [`event-model`](https://github.com/Open-Timekeeping/otk-core/tree/main/event-model):
+The node ingests four kinds of first-class events, all defined in [`event-model`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/event-model):
 
 - **Detection events** from any detector adapter.
 - **Detector health events** that say whether a detector is producing trustworthy data.
@@ -115,7 +129,7 @@ The node ingests four kinds of first-class events, all defined in [`event-model`
 - **Live subscribe** for apps and operator tools, streaming canonical events plus crossing results.
 - **Range reads and replay** for any consumer that wants history.
 - **Registry queries** for detector and timebase state.
-- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/otk-core/tree/main/timing-core).
+- **Projection queries** computed by [`timing-core`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/timing-core).
 
 ### Honest provenance, immutable log, amendments
 
@@ -123,12 +137,12 @@ Every event carries the timestamping method, timebase reference, sync state at t
 
 ### Deployment shapes
 
-Six canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/spec/blob/main/topologies.md):
+Six canonical deployment shapes are documented in [`spec/topologies.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/topologies.md):
 
 - **Native producer.** Firmware on a device speaks OTK directly over a supported transport. No edge adapter required.
 - **Edge adapter.** A standalone process on a Pi or mini-PC normalizes a raw device into canonical events and ships them to a node via `otk-sdk` (producer feature).
 - **Hub plugin.** A raw device cables into the host running the node; the adapter is loaded as a plugin (future).
-- **Local same-host adapters.** Adapter processes on the same host connect over a Unix socket binding (future).
+- **Local same-host adapters.** Adapter processes on the same host connect over a Unix socket binding.
 - **One node per detector stack.** Each timing point has its own node; aggregation upstream is optional.
 - **Central hub.** Many producers feed one central node that owns all storage and APIs.
 
@@ -141,18 +155,19 @@ Six canonical deployment shapes are documented in [`spec/topologies.md`](https:/
 
 ## The SDK
 
-[`otk-sdk`](https://github.com/Open-Timekeeping/otk-sdk) is the single SDK crate for producers and consumers. It has no dependency on server port contracts, adapters, or the timing-node app; its only `otk-core` dependencies are the shared types `event-model` (always) and `protocol` (producer feature only).
+[`otk-sdk`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/otk-sdk) is the single SDK crate for producers and consumers. It has no dependency on server port contracts, adapters, or the timing-node binary; its only intra-workspace deps are the shared types `event-model` (always) and `otk-protocol` (producer feature only).
 
-These examples use unpinned `git` references, which is intentional during early development. Add `rev = "<commit>"` once the project stabilizes.
+Inside the workspace, depend on it via a path dep and pick the feature set that matches the role:
 
 ```toml
-# Consumer app (default features include client for HTTP/SSE reads):
-otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk" }
+# Consumer (default features include `client` for HTTP/SSE reads):
+otk-sdk = { path = "../otk-sdk" }
 
-# Producer (TCP) — default-features = false excludes the client feature,
-# which producer-only processes don't need:
-otk-sdk = { git = "https://github.com/Open-Timekeeping/otk-sdk", default-features = false, features = ["producer"] }
+# Producer (TCP) - exclude the client feature for producer-only processes:
+otk-sdk = { path = "../otk-sdk", default-features = false, features = ["producer"] }
 ```
+
+External consumers depending on a published version will substitute `path = "../otk-sdk"` with `version = "x.y"` once `otk-sdk` lands on crates.io.
 
 Transport is runtime configuration, not a compile-time choice:
 
@@ -164,11 +179,11 @@ The SDK re-exports `event-model` types so dependents never need a direct `event-
 
 ## Networking models
 
-A detector adapter is a logical role, not a deployment constraint. The same `DetectorAdapter` contract (in `otk-sdk` producer feature) is satisfied by:
+A detector adapter is a logical role, not a deployment constraint. The same `DetectorAdapter` contract (in [`otk-contracts`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/otk-contracts), re-exported by `otk-sdk` producer feature) is satisfied by:
 
 - **Native firmware** on a detector device that speaks OTK directly.
 - **External adapter process** on an edge gateway using `otk-sdk` (producer feature).
-- **Plugin** loaded directly into `timing-node` (future `plugin-api`).
+- **Plugin** loaded directly into `timing-node` (future).
 - **Simulator** or **CSV replay** for development and conformance.
 
 ## Operating principles
@@ -182,22 +197,22 @@ A detector adapter is a logical role, not a deployment constraint. The same `Det
 
 ## Status
 
-**Early development.** Architecture is settling; protocol and schema details are explicitly tracked as open questions in [`spec/open-questions.md`](https://github.com/Open-Timekeeping/spec/blob/main/open-questions.md). No released versions yet.
+**Early development.** Architecture is settling; protocol and schema details are explicitly tracked as open questions in [`spec/open-questions.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/open-questions.md). No released versions yet.
 
 ## Compatibility
 
-An implementation claims Open Timekeeping compatibility by satisfying the relevant contracts and passing [`conformance`](https://github.com/Open-Timekeeping/conformance) with the canonical [`conformance-fixtures`](https://github.com/Open-Timekeeping/conformance-fixtures). See [`spec/compatibility.md`](https://github.com/Open-Timekeeping/spec/blob/main/compatibility.md).
+An implementation claims Open Timekeeping compatibility by satisfying the relevant contracts and passing the [`conformance`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/conformance) suite. See [`spec/compatibility.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/compatibility.md).
 
 ## Get involved
 
-- Read [`spec/architecture.md`](https://github.com/Open-Timekeeping/spec/blob/main/architecture.md) first.
-- Each repo's `README.md` defines its boundary, dependencies, and what does and does not belong there.
-- Issues and discussions are open on every repo.
-- Adapter, timebase, storage, and target ports are first-class extension points. You don't need to host your implementation on this organization. What matters is the contract and a passing conformance run.
+- Read [`spec/architecture.md`](https://github.com/Open-Timekeeping/open-timekeeping/blob/main/spec/architecture.md) first.
+- Each crate's `README.md` inside the workspace defines its boundary, dependencies, and what does and does not belong there.
+- Issues and discussions are open on the [`open-timekeeping`](https://github.com/Open-Timekeeping/open-timekeeping) repo.
+- Adapter, timebase, storage, and target ports are first-class extension points. Third-party detector adapters can compile against [`otk-contracts`](https://github.com/Open-Timekeeping/open-timekeeping/tree/main/otk-contracts) without inheriting the runtime's transport stack.
 
 ## License
 
-Apache-2.0 across software repos. The reference-hardware repo's design-file license may shift to CERN-OHL-S or TAPR OHL depending on community feedback.
+Apache-2.0 across the workspace. Future hardware design files may ship under CERN-OHL-S or TAPR OHL depending on community feedback.
 
 ## Maintainer
 
